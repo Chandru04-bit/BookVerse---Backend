@@ -4,8 +4,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import path from "path";
 import cookieParser from "cookie-parser";
+import path from "path";
 import { fileURLToPath } from "url";
 
 import userRoutes from "./routes/userRoutes.js";
@@ -13,67 +13,49 @@ import bookRoutes from "./routes/bookRoutes.js";
 
 dotenv.config();
 
-// Setup __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// ---------------------------
-// Middleware
-// ---------------------------
+// Middlewares
 app.use(express.json());
-app.use(cookieParser()); // For HTTP-only cookies
+app.use(cookieParser());
 
-// ---------------------------
-// CORS configuration
-// ---------------------------
-const allowedOrigins = [
-  "https://book-verse-frontend-6xsv.vercel.app"
-];
+// ---------- FIXED LIVE CORS ----------
+app.use(
+  cors({
+    origin: "https://book-verse-frontend-gkus.vercel.app",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true, // allow cookies
+  })
+);
 
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman/server requests
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true // allow cookies
-}));
+// Required for cookies to work on Vercel
+app.options("*", cors());
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
 
-// ---------------------------
-// Serve static uploads
-// ---------------------------
+// Static uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ---------------------------
-// API Routes
-// ---------------------------
+// Routes
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 
-// ---------------------------
-// Root route
-// ---------------------------
+// Root
 app.get("/", (req, res) => {
-  res.send("📚 Book Library API running...");
+  res.send("📚 Backend Running Live…");
 });
 
-// ---------------------------
-// MongoDB Connection
-// ---------------------------
+// MongoDB
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => console.log("MongoDB Error:", err));
 
-// ---------------------------
-// Export for Vercel serverless deployment
-// ---------------------------
+// Export for Vercel
 export default app;
