@@ -1,5 +1,4 @@
 // server.js
-
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
@@ -19,25 +18,20 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // ===================================
-// CORS Configuration (Localhost Only)
+// CORS for Localhost Frontend
 // ===================================
-const allowedOrigins = ["http://localhost:5173"];
+const FRONTEND_URL = "http://localhost:5173"; // Change this if your frontend runs on another port
 
 app.use(
   cors({
-    origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin: FRONTEND_URL,
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
 
-// Manual CORS headers (for preflight requests)
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-  }
-
+  res.header("Access-Control-Allow-Origin", FRONTEND_URL);
   res.header(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept, Authorization"
@@ -45,27 +39,24 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 
   if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
+    return res.sendStatus(200); // Preflight request success
   }
-
   next();
 });
 
-// ===================================
-// JSON Body Parser
-// ===================================
+// Parse JSON body
 app.use(express.json());
 
-// ===================================
-// Serve Static Uploads
-// ===================================
+// Serve uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ===================================
 // MongoDB Connection
 // ===================================
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/bookverse";
+
 mongoose
-  .connect(process.env.MONGO_URI, {
+  .connect(MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
@@ -85,9 +76,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 
-// ===================================
-// Mock Orders Route (Temporary)
-// ===================================
+// Temporary mock orders route
 app.get("/api/orders", (req, res) => {
   res.json({
     orders: [
@@ -106,9 +95,15 @@ app.get("/", (req, res) => {
 });
 
 // ===================================
-// Start Server
+// Start Server Locally
 // ===================================
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
+// ===================================
+// Export for Vercel (Optional)
+// ===================================
+export default app;
