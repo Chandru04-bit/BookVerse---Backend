@@ -23,30 +23,29 @@ const app = express();
 // Middleware
 // ---------------------------
 app.use(express.json());
-app.use(cookieParser()); // for HTTP-only cookies
+app.use(cookieParser()); // For HTTP-only cookies
 
 // ---------------------------
 // CORS configuration
 // ---------------------------
 const allowedOrigins = [
-  "https://book-verse-frontend-6xsv.vercel.app", // main frontend
-  "https://book-verse-frontend-p164.vercel.app"  // optional old frontend
+  "https://book-verse-frontend-6xsv.vercel.app"
 ];
 
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman or server-to-server requests
+    if (!origin) return callback(null, true); // allow Postman/server requests
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
     }
   },
-  credentials: true, // allow cookies
+  credentials: true // allow cookies
 }));
 
 // ---------------------------
-// Static uploads folder
+// Serve static uploads
 // ---------------------------
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -69,20 +68,12 @@ app.get("/", (req, res) => {
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
+    useUnifiedTopology: true
   })
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
 // ---------------------------
-// Local development server
-// ---------------------------
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-}
-
-// ---------------------------
-// Export for Vercel serverless
+// Export for Vercel serverless deployment
 // ---------------------------
 export default app;

@@ -11,18 +11,22 @@ import path from "path";
 
 const router = express.Router();
 
-// Local file upload setup
+// ---------------------------
+// File upload setup
+// ---------------------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
 });
 const upload = multer({ storage });
 
-// Routes
-router.get("/", getBooks);
-router.get("/:id", getBookById);
-router.post("/", upload.single("image"), addBookController);
-router.put("/:id", upload.single("image"), updateBookController);
-router.delete("/:id", deleteBookController);
+// ---------------------------
+// CRUD Routes
+// ---------------------------
+router.get("/", getBooks); // Get all books
+router.get("/:id", getBookById); // Get single book by ID
+router.post("/", upload.single("image"), addBookController); // Add book
+router.put("/:id", upload.single("image"), updateBookController); // Update book
+router.delete("/:id", deleteBookController); // Delete book
 
 export default router;

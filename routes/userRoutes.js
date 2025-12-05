@@ -1,57 +1,57 @@
-// routes/userRoutes.js
-
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User from "../models/User.js"; // make sure you have a User model
+import User from "../models/User.js";
+
 const router = express.Router();
 
-// Helper function to generate JWT
+// ---------------------------
+// Helper: Generate JWT
+// ---------------------------
 const generateJWT = (user) => {
   return jwt.sign(
     { id: user._id, name: user.name, email: user.email, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: "1d" }
+    { expiresIn: "7d" }
   );
 };
 
 // ========================
-// Signup Route
+// Signup
+// POST /api/users/signup
 // ========================
 router.post("/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Hash password
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ message: "User already exists" });
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
-    const newUser = await User.create({
+    const user = await User.create({
       name,
       email,
       password: hashedPassword,
-      role: "user",
+      role: "user"
     });
 
-    // Generate JWT
-    const token = generateJWT(newUser);
+    const token = generateJWT(user);
 
-    // Send token as HTTP-only cookie
-    res
-      .cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "Strict",
-        maxAge: 24 * 60 * 60 * 1000, // 1 day
-      })
-      .status(201)
-      .json({ message: "Signup successful", user: { name: newUser.name, email: newUser.email, role: newUser.role } });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.status(201).json({
+      message: "Signup successful",
+      user: { name: user.name, email: user.email, role: user.role }
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -59,37 +59,33 @@ router.post("/signup", async (req, res) => {
 });
 
 // ========================
-// Login Route
+// Login
+// POST /api/users/login
 // ========================
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
 
-    // Find user
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-    // Generate JWT
     const token = generateJWT(user);
 
-    // Send token as HTTP-only cookie
-    res
-      .cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "Strict",
-        maxAge: 24 * 60 * 60 * 1000, // 1 day
-      })
-      .status(200)
-      .json({ message: "Login successful", user: { name: user.name, email: user.email, role: user.role } });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+      user: { name: user.name, email: user.email, role: user.role }
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -97,20 +93,20 @@ router.post("/login", async (req, res) => {
 });
 
 // ========================
-// Logout Route
+// Logout
+// POST /api/users/logout
 // ========================
 router.post("/logout", (req, res) => {
-  res
-    .cookie("token", "", {
-      httpOnly: true,
-      expires: new Date(0),
-      sameSite: "Strict",
-    })
-    .json({ message: "Logged out successfully" });
+  res.cookie("token", "", {
+    httpOnly: true,
+    expires: new Date(0),
+    sameSite: "Strict"
+  }).json({ message: "Logged out successfully" });
 });
 
 // ========================
-// Get Current User Route
+// Get current user
+// GET /api/users/me
 // ========================
 router.get("/me", async (req, res) => {
   try {
@@ -118,7 +114,7 @@ router.get("/me", async (req, res) => {
     if (!token) return res.json({ user: null });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select("-password"); // exclude password
+    const user = await User.findById(decoded.id).select("-password");
     res.json({ user });
   } catch (err) {
     console.error(err);
