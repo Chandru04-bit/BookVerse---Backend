@@ -10,34 +10,39 @@ import bookRoutes from "./routes/bookRoutes.js";
 
 dotenv.config();
 
-// __dirname setup for ES Modules
+// Setup __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
 // Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173" }));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  })
+);
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // serve local images
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes
+// API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 
 // Root route
-app.get("/", (req, res) => res.send("📚 Book Library API running..."));
+app.get("/", (req, res) => {
+  res.send("📚 Book Library API running...");
+});
 
-// Connect MongoDB & Start Server
-const PORT = process.env.PORT || 5000;
-
+// MongoDB Connection
 mongoose
-  .connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/bookverse", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("✅ MongoDB Connected");
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-  })
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+
+// ❗ DO NOT USE app.listen() ON VERCEL
+// Vercel handles the server automatically.
+
+// Export the Express app for Vercel serverless functions
+export default app;
+
