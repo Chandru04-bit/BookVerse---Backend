@@ -8,54 +8,80 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 
+// Routes
 import userRoutes from "./routes/userRoutes.js";
 import bookRoutes from "./routes/bookRoutes.js";
 
 dotenv.config();
 
+// ES Module dirname fix
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// ----------------------
 // Middlewares
+// ----------------------
 app.use(express.json());
 app.use(cookieParser());
 
-// ---------- FIXED LIVE CORS ----------
+// ----------------------
+// CORS FIX FOR VERCEL
+// ----------------------
+const FRONTEND = "https://book-verse-frontend-gkus.vercel.app";
+
 app.use(
   cors({
-    origin: "https://book-verse-frontend-gkus.vercel.app",
+    origin: FRONTEND,
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true, // allow cookies
   })
 );
 
-// Required for cookies to work on Vercel
-app.options("*", cors());
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Credentials", "true");
-  next();
+// Preflight
+app.options("*", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", FRONTEND);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  return res.status(200).end();
 });
 
-// Static uploads
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// ----------------------
+// ❗ REMOVE STATIC UPLOADS (NOT SUPPORTED ON VERCEL)
+// ----------------------
+// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// ----------------------
 // Routes
+// ----------------------
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 
-// Root
+// ----------------------
+// Home Route
+// ----------------------
 app.get("/", (req, res) => {
-  res.send("📚 Backend Running Live…");
+  res.json({ message: "📚 Backend is running LIVE on Vercel!" });
 });
 
-// MongoDB
+// ----------------------
+// MongoDB Connect
+// ----------------------
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log("MongoDB Error:", err));
+  .then(() => console.log("✅ MongoDB Connected Successfully"))
+  .catch((err) => console.error("❌ MongoDB Error:", err.message));
 
-// Export for Vercel
+// ----------------------
+// Export for Vercel (no listen())
+// ----------------------
 export default app;
