@@ -29,36 +29,28 @@ app.use(cookieParser());
 // ----------------------
 // CORS FIX FOR VERCEL
 // ----------------------
-const FRONTEND = "https://book-verse-frontend-gkus.vercel.app";
+const allowedOrigins = [
+  'https://book-verse-frontend-ujls.vercel.app',
+  'https://book-verse-frontend-gkus.vercel.app'
+];
 
-app.use(
-  cors({
-    origin: FRONTEND,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use(cors({
+  origin: function(origin, callback) {
+    // allow requests with no origin (like Postman, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true, // allow cookies/auth headers
+}));
 
-// Preflight
-app.options("*", (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", FRONTEND);
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
-  return res.status(200).end();
-});
-
-// ----------------------
-// ❗ REMOVE STATIC UPLOADS (NOT SUPPORTED ON VERCEL)
-// ----------------------
-// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Preflight OPTIONS requests for all routes
+app.options("*", cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 // ----------------------
 // Routes
